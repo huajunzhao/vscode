@@ -27,6 +27,7 @@ export function chmod(path: string, mode: number): TPromise<boolean> {
 }
 
 export import mkdirp = extfs.mkdirp;
+import { Readable } from 'stream';
 
 export function rimraf(path: string): TPromise<void> {
 	return lstat(path).then(stat => {
@@ -101,6 +102,7 @@ const writeFilePathQueue: { [path: string]: Queue<void> } = Object.create(null);
 
 export function writeFile(path: string, data: string, options?: { mode?: number; flag?: string; }): TPromise<void>;
 export function writeFile(path: string, data: NodeBuffer, options?: { mode?: number; flag?: string; }): TPromise<void>;
+export function writeFile(path: string, data: Readable, options?: { mode?: number; flag?: string; }): TPromise<void>;
 export function writeFile(path: string, data: any, options?: { mode?: number; flag?: string; }): TPromise<void> {
 	let queueKey = toQueueKey(path);
 

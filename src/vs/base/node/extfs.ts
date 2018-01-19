@@ -14,6 +14,7 @@ import * as fs from 'fs';
 import * as paths from 'path';
 import { TPromise } from 'vs/base/common/winjs.base';
 import { nfcall } from 'vs/base/common/async';
+import { Readable, Writable } from 'stream';
 
 const loop = flow.loop;
 
@@ -133,6 +134,35 @@ function pipeFs(source: string, target: string, mode: number, callback: (error: 
 	// We can do this because file streams have an end() method that allows to pass in a callback.
 	// In node 0.10 there is an event 'finish' emitted from the write stream that can be used. See
 	// https://groups.google.com/forum/?fromgroups=#!topic/nodejs/YWQ1sRoXOdI
+	readStream.pipe(writeStream, { end: false });
+}
+
+function pipeStream(readStream: Readable, writeStream: Writable, callback: (error: Error) => void): void {
+	let callbackHandled = false;
+
+	const onError = (error: Error) => {
+		if (!callbackHandled) {
+			callbackHandled = true;
+			callback(error);
+		}
+	};
+
+	console.log("pipeStream")
+
+	readStream.on('error', onError);
+	writeStream.on('error', onError);
+
+	readStream.on('end', () => {
+		console.log("YES, ON END")
+		writeStream.end(() => {
+			if (!callbackHandled) {
+				callbackHandled = true;
+
+				callback(void 0);
+			}
+		});
+	});
+
 	readStream.pipe(writeStream, { end: false });
 }
 
@@ -326,8 +356,15 @@ export function mv(source: string, target: string, callback: (error: Error) => v
 //
 // See https://github.com/nodejs/node/blob/v5.10.0/lib/fs.js#L1194
 let canFlush = true;
-export function writeFileAndFlush(path: string, data: string | NodeBuffer, options: { mode?: number; flag?: string; }, callback: (error: Error) => void): void {
+export function writeFileAndFlush(path: string, data: string | NodeBuffer | Readable, options: { mode?: number; flag?: string; }, callback: (error: Error) => void): void {
 	options = ensureOptions(options);
+
+	if (data instanceof Readable) {
+		return pipeStream(data, fs.createWriteStream(path, options), (error) => {
+			console.log("DONE", error);
+			callback(error);
+		});
+	}
 
 	if (!canFlush) {
 		return fs.writeFile(path, data, options, callback);
