@@ -588,14 +588,12 @@ export class FileService implements IFileService {
 			contents = value;
 		} else {
 			contents = new Readable({
-				read: (size) => {
-					console.log("read", size);
-
-					const res = value.read();
-
-					console.log("result", res)
-
-					return res;
+				read: function (size) {
+					let res: string;
+					let canPush = true;
+					while (canPush && (res = value.read())) {
+						canPush = this.push(res);
+					}
 				}
 			});
 		}
