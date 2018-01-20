@@ -594,6 +594,10 @@ export class FileService implements IFileService {
 					while (canPush && (res = value.read())) {
 						canPush = this.push(res);
 					}
+
+					if (res === null) {
+						this.push(null);
+					}
 				}
 			});
 		}
